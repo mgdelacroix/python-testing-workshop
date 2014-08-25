@@ -2,7 +2,13 @@
 
 * Testing en python
 
-  Por [[http://twitter.com/jespinog][Jesús Espino]].
+  Taller impartido durante los [[http://www.kaleidos.net/blog/346/kaleidos-summer-mondays/][Kaleidos Summer Mondays]] por [[http://twitter.com/jespinog][Jesús
+  Espino]].
+
+  Como submódulos de este repositorio tenemos:
+  - [[https://github.com/jespino/python-testing-workshop][python-testing-workshop]]: código de ejemplo del taller.
+  - [[https://github.com/mgdelacroix/pytest-gitsts][pytest-gists]]: sencillo módulo de python testeado durante el
+    taller.
 
 ** Pytest
 
