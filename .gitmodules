@@ -1,0 +1,3 @@
+[submodule "python-testing-workshop"]
+	path = python-testing-workshop
+	url = https://github.com/jespino/python-testing-workshop
