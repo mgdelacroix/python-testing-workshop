@@ -1,0 +1,278 @@
+#+TITLE: Testing en Python
+#+DATE: 2014-08-25 Mon
+
+Por [[http://twitter.com/jespinog][Jesús Espino]].
+
+* Testing en python
+
+** Pytest
+
+   Busca ficheros que empiecen por ~test_~ o acaben en ~_test~. Si
+   hay alguna clase que empieza por ~Test~ la considera una clase
+   cuyos métodos hay que testear, y éstos tendrán que empezar por
+   ~test_~.
+
+   Ejecutamos los tests con ~py.test~. Argumentos interesantes:
+   - ~-x~: para en el primer fallo.
+   - ~--maxfail=2~: se detendrá al alcanzar el número de fallos que
+     le digamos (en este caso 2).
+   - ~-k good~: ejecuta aquellos que contengan la palabra ~good~ (es
+     una expresión regular).
+   - ~test.py~: ejecuta solo los tests del fichero ~test.py~.
+   - ~--duration=2~: informa de cuales son los 2 tests más lentos.
+
+*** Fixtures
+
+    En pytest no existen los bloques ~Setup~ y ~Teardown~, en su lugar
+    se utilizan ~fixtures~. Las fixtures son pequeños módulos que
+    deben ejecutarse antes y después del test.
+
+    #+BEGIN_SRC python
+      @pytest.fixture
+      def mifixture():
+          return 4
+
+      def test_with_fixture(mifixture):
+          assert mifixture == 4
+    #+END_SRC
+
+    En el ejemplo anterior, antes del test se ejecutaría la fixture y
+    su resultado se guardaría en la variable =mifixture=, que está
+    disponible en el test.
+
+    Para ver las fixtures que tenemos definidas podemos utilizar
+    =py.test --fixtures=.
+
+*** Marcas
+
+    Las marcas nos sirven para identificar tests y poder luego
+    referenciarlos desde el CLI.
+
+    #+BEGIN_SRC shell-script
+      # Ejecutará los tests marcados con "@pytest.mark.otracosa"
+      py.test -m otracosa
+
+      # Ejecutará los tests no marcados con "@pytest.mark.otracosa"
+      py.test -m "not otracosa"
+    #+END_SRC
+
+    Para obtener una lista con todos los markers que tenemos
+    disponibles (algunos plugins nos proporcionan markers para hacer
+    ciertas cosas) utilizamos el comando =py.test --markers=.
+
+*** Plugins
+
+**** Cobertura
+
+     Hace un análisis de cobertura. Se lanza con ~py.test --cov=.~
+
+     Para exportar a html ~py.test --cov=. --cov-report=html~
+
+**** Flakes
+
+     Analizador estático de código.
+
+     Lo podemos lanzar de modo independiente con ~flake8 fichero.py~
+
+     Lo podemos lanzar desde py.test con ~py.test --flakes~
+
+**** Cache
+
+     Hay veces en que tenemos muchos tests y pasarlos todos consume
+     demasiado tiempo. Con el plugin de caché podemos ejecutar tests
+     que cumplan ciertas condiciones:
+
+     #+BEGIN_SRC shell-script
+       # Last failed
+       py.test --lf
+
+       # All test, but first those who failed on the last execution
+       py.test --ff
+     #+END_SRC
+
+**** Mock
+
+     Ejemplo de uso de la biblioteca *mock* a través del plugin de
+     *pytest*.
+
+     #+BEGIN_SRC python
+       def test_cwd_1(mock):
+           # Indicamos que queremos mockear os.getcwd
+           mock.patch("os.getcwd")
+           # Indicamos el valor de retorno del mock
+           os.getcwd.return_value = "test"
+           # Hacemos la aserción
+           assert "test" == os.getcwd()
+
+       def test_cwd_2():
+           # Este test no debería tener mock ninguno
+           assert "test" == os.getcwd()
+     #+END_SRC
+
+**** Bench
+
+     #+BEGIN_SRC python
+       # FILE: test_bench.py
+       from pytest import mark
+       import operator
+
+       # Tenemos que marcar el código del que queremos hacer un benchmark
+       @mark.bench('operator.eq')
+       def test_eq():
+           assert operator.eq(1, 1)
+     #+END_SRC
+
+     Lo lanzamos con ~py.test --bench test_bench.py~
+
+**** Quickcheck
+
+     Viene de haskell. Le indicamos una serie de variables y el nos
+     lanza tantos tests como le pidamos dándole valores a esas
+     variables.
+
+     #+BEGIN_SRC python
+       # FILE: test_quickcheck.py
+       import pytest
+
+       @pytest.mark.randomize(i1=int, i2=int, ncalls=10)
+       def test_generate_ints(i1, i2):
+           assert i1 > i2
+     #+END_SRC
+
+     El test del código de ejemplo falla o pasa aleatoriamente en
+     función de los valores que tomen ~i1~ e ~i2~. El test de ejemplo
+     se ejecutará 100 veces (10 * 10).
+
+**** Xdist
+
+     Para ejecutar test en paralelo. Para indicarle cuantos tests
+     queremos lanzar en paralelo, utilizamos el parámetro ~-n~:
+
+     #+BEGIN_SRC shell-script
+       # 3 tests en paralelo
+       py.test -n 3
+     #+END_SRC
+
+** Biblioteca Mock
+
+   Se incluyó en python3.3. [[https://docs.python.org/3/library/unittest.mock.html][Documentación]].
+
+   Si le pides un atributo o método que no está definido, te devuelve
+   un mock.
+
+   Puedes definirle valores para un método o atributo.
+
+   Puedes utilizar un mock para espiar.
+
+*** Mock
+
+   #+BEGIN_SRC python
+     from unittest import mock
+
+     class DummyClass:
+         def hello(self):
+             print("Hello world")
+             return "OK"
+
+     # m va a simular mi clase dummy
+     m = mock.Mock()
+     # la siguiente llamada devolverá un mock, porque no
+     # sabe lo que tiene que devolver
+     print(m.hello())
+     assert m.hello.called
+     # indicamos un valor para un método inexistente
+     m.whatever.return_value = 3
+     # la siguiente llamada imprimirá 3
+     print(m.whatever())
+
+     m.a().b().c.return_value = True
+     assert m.a().b().c() == True
+
+     dummy_object = DummyClass()
+     # Utilizando el parámetro wraps, el mock monitoriza
+     # las llamadas que se le hagan. El mock está cubriendo
+     # al objeto original, así que se le hace la llamada
+     # al objeto además de cubrirle
+     spy = mock.Mock(wraps=dummy_object)
+     # La siguiente llamada imprimirá "Hello World", porque
+     # la llamada llega al objeto
+     print(spy.hello())
+     # comprobamos que se ha llamado a hello
+     assert spy.hello.called
+
+     # Dará una excepción (ver siguiente bloque de código)
+     print(spy[3])
+   #+END_SRC
+
+*** MagicMock
+
+   MagicMock permite que las llamadas que utilicen magic methods
+   devuelvan también un mock.
+
+   #+BEGIN_SRC python
+     from unittest import mock
+
+     class DummyClass:
+         def hello(self):
+             print("Hello world")
+             return "OK"
+
+     m = mock.MagicMock()
+     print(m.hello())
+
+     dummy_object = DummyClass()
+     spy = mock.MagicMock(wraps=dummy_object)
+     print(spy.hello())
+
+     # no dará una excepción porque estamos usando MagicMethods
+     print(spy[3])
+   #+END_SRC
+
+*** Patching
+
+    Nos permite hacer mocks de módulos que están fuera:
+
+    #+BEGIN_SRC python
+      import os
+      from unittest import mock
+
+      # si utilizamos "with", el parche sabe deshacerse
+      with mock.patch('os.getcwd'):
+          os.getcwd.return_value = "test"
+          # devuelve el valor mockeado
+          print(os.getcwd())
+
+      # devuelve el valor real
+      print(os.getcwd())
+    #+END_SRC
+
+** Factory Boy
+
+   Nos permite construir de manera fácil instancias de nuestro modelo
+   de datos para utilizar en los tests. Muy similar al plugin de [[http://grails.org/plugin/build-test-data][build
+   test data]] de grails.
+
+   #+BEGIN_SRC python
+     #### FILE: factories.py
+     import factory
+     import factory.fuzzy
+     import app
+
+     class UserFactory(factory.Factory):
+         class Meta:
+             model = app.User
+
+         first_name = "John"
+         last_name = "Doe"
+         email = "john@doe.com"
+         profile = None
+
+     #### IPYTHON
+     import factories
+
+     # crea un usuario
+     factories.UserFactory.build()
+
+     # crea diez usuarios en batch
+     factories.UserFactory.build_batch(10)
+   #+END_SRC
