@@ -1,6 +1,6 @@
-[submodule "python-testing-workshop"]
-	path = python-testing-workshop
-	url = https://github.com/jespino/python-testing-workshop
 [submodule "pytest-gitsts"]
 	path = pytest-gitsts
 	url = git@github.com:mgdelacroix/pytest-gitsts.git
+[submodule "workshop-code"]
+	path = workshop-code
+	url = https://github.com/jespino/python-testing-workshop
