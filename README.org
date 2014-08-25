@@ -1,9 +1,8 @@
-#+TITLE: Testing en Python
 #+DATE: 2014-08-25 Mon
 
-Por [[http://twitter.com/jespinog][Jesús Espino]].
-
 * Testing en python
+
+  Por [[http://twitter.com/jespinog][Jesús Espino]].
 
 ** Pytest
 
@@ -48,7 +47,7 @@ Por [[http://twitter.com/jespinog][Jesús Espino]].
     Las marcas nos sirven para identificar tests y poder luego
     referenciarlos desde el CLI.
 
-    #+BEGIN_SRC shell-script
+    #+BEGIN_SRC sh
       # Ejecutará los tests marcados con "@pytest.mark.otracosa"
       py.test -m otracosa
 
@@ -82,7 +81,7 @@ Por [[http://twitter.com/jespinog][Jesús Espino]].
      demasiado tiempo. Con el plugin de caché podemos ejecutar tests
      que cumplan ciertas condiciones:
 
-     #+BEGIN_SRC shell-script
+     #+BEGIN_SRC sh
        # Last failed
        py.test --lf
 
@@ -148,7 +147,7 @@ Por [[http://twitter.com/jespinog][Jesús Espino]].
      Para ejecutar test en paralelo. Para indicarle cuantos tests
      queremos lanzar en paralelo, utilizamos el parámetro ~-n~:
 
-     #+BEGIN_SRC shell-script
+     #+BEGIN_SRC sh
        # 3 tests en paralelo
        py.test -n 3
      #+END_SRC
@@ -275,4 +274,37 @@ Por [[http://twitter.com/jespinog][Jesús Espino]].
 
      # crea diez usuarios en batch
      factories.UserFactory.build_batch(10)
+   #+END_SRC
+
+   En el ejemplo anterior, los atributos de la clase resultado eran
+   siempre los mismos. Las siguientes factorías calculan los
+   parámetros de manera dinámica:
+
+   #+BEGIN_SRC python
+     class ProfileFactory(factory.Factory):
+         class Meta:
+             model = app.Profile
+
+         age = factory.fuzzy.FuzzyInteger(18, 65)
+         sex = factory.Iterator([True, False])
+
+
+     class UserSequenceFactory(factory.Factory):
+         class Meta:
+             model = app.User
+
+         first_name = factory.Sequence(lambda n: "name-{}".format(n))
+         last_name = factory.Sequence(lambda n: "surname-{}".format(n))
+         email = factory.LazyAttribute(lambda obj: "{}.{}@example.com".format(obj.first_name, obj.last_name))
+         profile = factory.SubFactory(ProfileFactory)
+   #+END_SRC
+
+   Siempre podemos sobrescribir los parámetros por defecto (sean
+   estáticos o dinámicos) pasándoselos al método ~build()~
+
+   #+BEGIN_SRC python
+     >>> import factories
+     >>> u = factories.UserFactory.build(first_name="random name by me")
+     >>> u.first_name
+     'random name by me'
    #+END_SRC
